@@ -78,61 +78,74 @@ resource "aws_cloudwatch_metric_alarm" "high_cpu_system" {
   })
 }
 
-resource "aws_cloudwatch_metric_alarm" "io_proportion" {
-  count                     = var.io_proportion_enabled ? 1 : 0
-  alarm_name                = "MQ | IO Read/Write Proportion | ${var.broker_name}"
-  alarm_description         = "Abnormal IO Read/Write proportion in broker ${var.broker_name}"
-  comparison_operator       = "GreaterThanThreshold"
-  evaluation_periods        = 5
-  datapoints_to_alarm       = 5
-  threshold                 = var.io_proportion_threshold
+resource "aws_cloudwatch_metric_alarm" "slow_write" {
+  count                     = var.slow_write_enabled ? 1 : 0
+  alarm_name                = "MQ | Slow write | ${var.broker_name}"
+  comparison_operator       = "LessThanLowerOrGreaterThanUpperThreshold"
+  evaluation_periods        = 2
+  threshold_metric_id       = "ad1"
   treat_missing_data        = "breaching"
-  alarm_actions             = concat(var.io_proportion_sns_arns, var.all_alarms_sns_arns)
-  ok_actions                = concat(var.io_proportion_sns_arns, var.all_alarms_sns_arns)
-  insufficient_data_actions = concat(var.io_proportion_sns_arns, var.all_alarms_sns_arns)
-
-  tags = merge(var.tags, {
-    "BrokerID"  = var.broker_name,
-    "Terraform" = "true"
-  })
-
+  alarm_actions             = concat(var.rate_proportion_sns_arns, var.all_alarms_sns_arns)
+  ok_actions                = concat(var.rate_proportion_sns_arns, var.all_alarms_sns_arns)
+  insufficient_data_actions = concat(var.rate_proportion_sns_arns, var.all_alarms_sns_arns)
   metric_query {
-    id          = "io"
-    expression  = "IF(m2 > 0, ABS(m1 / m2), 0)"
-    label       = "IO Read/Write Proportion"
+    id          = "m1"
+    period      = 0
     return_data = true
-  }
 
-  metric_query {
-    id = "m1"
     metric {
-      metric_name = "RabbitMQIOReadAverageTime"
-      namespace   = "AWS/AmazonMQ"
-      period      = 300
-      stat        = "Average"
-      unit        = "Milliseconds"
       dimensions = {
-        "Broker" = var.broker_name
+        "Broker" = "rabbitmq"
       }
-    }
-  }
-
-  metric_query {
-    id = "m2"
-    metric {
       metric_name = "RabbitMQIOWriteAverageTime"
       namespace   = "AWS/AmazonMQ"
       period      = 300
       stat        = "Average"
-      unit        = "Milliseconds"
-      dimensions = {
-        "Broker" = var.broker_name
-      }
     }
+  }
+  metric_query {
+    expression  = "ANOMALY_DETECTION_BAND(m1, 2)"
+    id          = "ad1"
+    label       = "RabbitMQIOWriteAverageTime (expected)"
+    period      = 0
+    return_data = true
   }
 }
 
-resource "aws_cloudwatch_metric_alarm" "rabbitmq_publish_confirm_ack_proportion" {
+resource "aws_cloudwatch_metric_alarm" "slow_read" {
+  count                     = var.slow_read_enabled ? 1 : 0
+  alarm_name                = "MQ | Slow read | ${var.broker_name}"
+  comparison_operator       = "LessThanLowerOrGreaterThanUpperThreshold"
+  evaluation_periods        = 2
+  threshold_metric_id       = "ad1"
+  treat_missing_data        = "breaching"
+  alarm_actions             = concat(var.rate_proportion_sns_arns, var.all_alarms_sns_arns)
+  ok_actions                = concat(var.rate_proportion_sns_arns, var.all_alarms_sns_arns)
+  insufficient_data_actions = concat(var.rate_proportion_sns_arns, var.all_alarms_sns_arns)
+  metric_query {
+    id          = "m1"
+    period      = 0
+    return_data = true
+
+    metric {
+      dimensions = {
+        "Broker" = "rabbitmq"
+      }
+      metric_name = "RabbitMQIOReadAverageTime"
+      namespace   = "AWS/AmazonMQ"
+      period      = 300
+      stat        = "Average"
+    }
+  }
+  metric_query {
+    expression  = "ANOMALY_DETECTION_BAND(m1, 2)"
+    id          = "ad1"
+    label       = "RabbitMQIOReadAverageTime (expected)"
+    period      = 0
+    return_data = true
+  }
+}
+resource "aws_cloudwatch_metric_alarm" "confirm_ack_proportion" {
   count                     = var.rate_proportion_enabled ? 1 : 0
   alarm_name                = "MQ | Publish vs Confirm vs Ack Proportion | ${var.broker_name}"
   alarm_description         = "Detects unproportional rates between Publish, Confirm, and Ack rates in broker ${var.broker_name}"
@@ -197,6 +210,7 @@ resource "aws_cloudwatch_metric_alarm" "rabbitmq_publish_confirm_ack_proportion"
     }
   }
 }
+
 
 
 

@@ -53,31 +53,30 @@ variable "broker_name" {
 
 }
 
-variable "slow_ack_threshold" {
-  description = "The threshold for slow acks"
-  type        = number
-  default     = 100
-
-}
-variable "io_proportion_threshold" {
-  description = "The threshold for IO proportion"
-  type        = number
-  default     = 10
-
-}
-variable "io_proportion_enabled" {
-  description = "Enable IO proportion alarm"
+variable "slow_write_enabled" {
+  description = "The threshold for slow writes"
   type        = bool
   default     = true
-
+  
 }
-variable "io_proportion_sns_arns" {
+variable "slow_write_sns_arns" {
   description = "List of ARNs for the SNS topics"
   type        = list(string)
   default     = []
 
 }
-
+variable "slow_read_enabled" {
+  description = "The threshold for slow reads"
+  type        = bool
+  default     = true
+  
+}
+variable "slow_read_sns_arns" {
+  description = "List of ARNs for the SNS topics"
+  type        = list(string)
+  default     = []
+  
+}
 variable "rate_proportion_enabled" {
   description = "Enable rate proportion alarm"
   type        = bool
