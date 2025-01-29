@@ -95,7 +95,7 @@ resource "aws_cloudwatch_metric_alarm" "slow_write" {
 
     metric {
       dimensions = {
-        "Broker" = "rabbitmq"
+        "Broker" = var.broker_name
       }
       metric_name = "RabbitMQIOWriteAverageTime"
       namespace   = "AWS/AmazonMQ"
@@ -129,7 +129,7 @@ resource "aws_cloudwatch_metric_alarm" "slow_read" {
 
     metric {
       dimensions = {
-        "Broker" = "rabbitmq"
+        "Broker" = var.broker_name
       }
       metric_name = "RabbitMQIOReadAverageTime"
       namespace   = "AWS/AmazonMQ"
